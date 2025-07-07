@@ -3,51 +3,53 @@ import pandas as pd
 import ast
 import requests
 
-# Load your dataset
+# 🔑 TMDB API Key
+TMDB_API_KEY = "d75ba14a78f04afedfdd0836fb06d7e6"
+
+# Function to get poster URL
+def get_poster_url(movie_title):
+    url = "https://api.themoviedb.org/3/search/movie"
+    params = {
+        "api_key": TMDB_API_KEY,
+        "query": movie_title
+    }
+    response = requests.get(url, params=params)
+    data = response.json()
+    if data["results"]:
+        poster_path = data["results"][0].get("poster_path")
+        if poster_path:
+            return f"https://image.tmdb.org/t/p/w500{poster_path}"
+    return "https://via.placeholder.com/300x450?text=No+Poster+Available"
+
+# Load dataset
 df = pd.read_csv("tmdb_5000_movies.csv")
 
-# Convert genres from string to list if needed
+# Convert genres from string to list
 if isinstance(df['genres'].iloc[0], str) and df['genres'].iloc[0].startswith("["):
     df['genres'] = df['genres'].apply(lambda x: [d['name'] for d in ast.literal_eval(x)])
 
-# Set page title
+# Streamlit UI
 st.set_page_config(page_title="Movie Info App", layout="centered")
 st.title("🎬 Movie Info Search Engine")
 
-# Dropdown for movie selection
+# Dropdown of all movies
 movie_list = df['original_title'].dropna().unique()
-selected_movie = st.selectbox("🔍 Select a movie title", sorted(movie_list))
+selected_movie = st.selectbox("🔍 Select a movie", sorted(movie_list))
 
-# Filter all rows with the selected title (in case duplicates exist)
-matches = df[df['original_title'] == selected_movie]
+# Show movie info
+if selected_movie:
+    movie_data = df[df['original_title'] == selected_movie].iloc[0]
 
-# Function to show poster (if using TMDB, replace with real URL logic)
-def show_poster(poster_path):
-    base_url = "https://image.tmdb.org/t/p/w500"
-    if isinstance(poster_path, str) and poster_path != "":
-        return base_url + poster_path
-    else:
-        return "https://via.placeholder.com/300x450?text=No+Poster"
-
-# Show all matching entries
-for i, m in matches.iterrows():
-    st.markdown("---")
-    st.subheader(f"🎬 {m['original_title']}")
-    
-    # Columns for layout
     col1, col2 = st.columns([1, 2])
-    
+
     with col1:
-        # Try showing poster image
-        if 'poster_path' in m and pd.notna(m['poster_path']):
-            poster_url = show_poster(m['poster_path'])
-        else:
-            poster_url = "https://via.placeholder.com/300x450?text=No+Poster"
+        poster_url = get_poster_url(selected_movie)
         st.image(poster_url, width=250)
 
     with col2:
-        st.write(f"📅 **Release Date**: {m['release_date']}")
-        st.write(f"🎭 **Genres**: {', '.join(m['genres']) if isinstance(m['genres'], list) else m['genres']}")
-        st.write(f"⏱️ **Runtime**: {m['runtime']} minutes")
-        st.write(f"⭐ **Rating**: {m['vote_average']} ({m['vote_count']} votes)")
-        st.markdown(f"📝 **Overview**: {m['overview']}")
+        st.markdown(f"### 🎬 {movie_data['original_title']}")
+        st.write(f"📅 **Release Date**: {movie_data['release_date']}")
+        st.write(f"🎭 **Genres**: {', '.join(movie_data['genres']) if isinstance(movie_data['genres'], list) else movie_data['genres']}")
+        st.write(f"⏱️ **Runtime**: {movie_data['runtime']} minutes")
+        st.write(f"⭐ **Rating**: {movie_data['vote_average']} ({movie_data['vote_count']} votes)")
+        st.write(f"📝 **Overview**: {movie_data['overview']}")
