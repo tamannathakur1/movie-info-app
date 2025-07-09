@@ -6,7 +6,10 @@ import requests
 # 🔑 TMDB API Key
 TMDB_API_KEY = "d75ba14a78f04afedfdd0836fb06d7e6"
 
-# ✅ Function to get poster URL
+# 🔑 RapidAPI Key for Streaming Availability
+RAPIDAPI_KEY = "40a0ec6ad8mshdf93d395ced8664p12f290jsnc4b651b07b25"
+
+# ✅ Function to get poster URL from TMDB
 def get_poster_url(movie_title):
     url = "https://api.themoviedb.org/3/search/movie"
     params = {
@@ -22,6 +25,29 @@ def get_poster_url(movie_title):
         if poster_path:
             return f"https://image.tmdb.org/t/p/w500{poster_path}"
     return "https://via.placeholder.com/300x450?text=No+Poster"
+
+# ✅ Function to get streaming platform availability from RapidAPI
+def get_streaming_providers(movie_title):
+    url = "https://streaming-availability.p.rapidapi.com/search/title"
+    querystring = {
+        "title": movie_title,
+        "country": "IN",  # You can change to "US", "UK", etc.
+        "show_type": "movie"
+    }
+    headers = {
+        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Host": "streaming-availability.p.rapidapi.com"
+    }
+    try:
+        response = requests.get(url, headers=headers, params=querystring)
+        data = response.json()
+        if "result" in data and len(data["result"]) > 0:
+            streaming_info = data["result"][0].get("streamingInfo", {})
+            platforms = list(streaming_info.get("in", {}).keys())
+            return platforms if platforms else ["Not Available"]
+    except Exception as e:
+        return ["Error retrieving data"]
+    return ["Not Available"]
 
 # ✅ Load and process dataset
 df = pd.read_csv("tmdb_5000_movies.csv")
@@ -42,6 +68,7 @@ selected_movie = st.selectbox("🔍 Select a movie title", sorted(movie_list))
 if selected_movie:
     movie_data = df[df['original_title'] == selected_movie].iloc[0]
     poster_url = get_poster_url(selected_movie)
+    platforms = get_streaming_providers(selected_movie)
 
     col1, col2 = st.columns([1, 2])
 
@@ -55,3 +82,4 @@ if selected_movie:
         st.write(f"⏱️ **Runtime**: {movie_data['runtime']} minutes")
         st.write(f"⭐ **Rating**: {movie_data['vote_average']} ({movie_data['vote_count']} votes)")
         st.write(f"📝 **Overview**: {movie_data['overview']}")
+        st.write(f"📺 **Available On**: {', '.join(platforms)}")
