@@ -43,7 +43,7 @@ def get_streaming_providers(movie_title):
     url = "https://streaming-availability.p.rapidapi.com/search/title"
     query = {
         "title": movie_title,
-        "country": "IN",
+        "country": "US",
         "show_type": "movie"
     }
     headers = {
