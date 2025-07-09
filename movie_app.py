@@ -59,7 +59,7 @@ def get_streaming_providers(movie_title):
     platforms = set()
 
     for item in data.get("result", []):
-        for code in item.get("streamingInfo", {}).get("in", {}).keys():
+        for code in item.get("streamingInfo", {}).get("us", {}).keys():
             platforms.add(PLATFORM_MAP.get(code, code.capitalize()))
 
     return sorted(platforms) if platforms else ["Not Available"]
