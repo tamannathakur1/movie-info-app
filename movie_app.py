@@ -7,18 +7,18 @@ import requests
 TMDB_API_KEY = "d75ba14a78f04afedfdd0836fb06d7e6"
 RAPIDAPI_KEY = "40a0ec6ad8mshdf93d395ced8664p12f290jsnc4b651b07b25"
 
-# ✅ Platform code to readable name mapping
-PLATFORM_MAP = {
-    "netflix": "Netflix",
-    "prime": "Amazon Prime Video",
-    "disney": "Disney+",
-    "hotstar": "Hotstar",
-    "hbo": "HBO Max",
-    "apple": "Apple TV+",
-    "zee5": "Zee5",
-    "sonyliv": "SonyLIV",
-    "aha": "Aha",
-    "jio": "JioCinema"
+# ✅ Platform code to name + logo mapping
+PLATFORM_LOGOS = {
+    "netflix": ("Netflix", "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg"),
+    "prime": ("Amazon Prime Video", "https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png"),
+    "disney": ("Disney+", "https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg"),
+    "hotstar": ("Hotstar", "https://upload.wikimedia.org/wikipedia/commons/1/1e/Hotstar_logo.svg"),
+    "hbo": ("HBO Max", "https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg"),
+    "apple": ("Apple TV+", "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg"),
+    "zee5": ("Zee5", "https://upload.wikimedia.org/wikipedia/commons/6/67/ZEE5_official_logo.png"),
+    "sonyliv": ("SonyLIV", "https://upload.wikimedia.org/wikipedia/commons/b/b2/Sony_Liv_logo.svg"),
+    "aha": ("Aha", "https://upload.wikimedia.org/wikipedia/commons/f/f4/Aha_OTT_Logo.png"),
+    "jio": ("JioCinema", "https://upload.wikimedia.org/wikipedia/commons/0/0c/Jio_Cinema_Logo.png")
 }
 
 # ✅ Function to get poster from TMDB
@@ -38,12 +38,13 @@ def get_poster_url(movie_title):
             return f"https://image.tmdb.org/t/p/w500{poster_path}"
     return "https://via.placeholder.com/300x450?text=No+Poster"
 
-# ✅ Function to get streaming platforms using RapidAPI
+# ✅ Function to get streaming platforms with logos
 def get_streaming_providers(movie_title):
+    country_code = "us"
     url = "https://streaming-availability.p.rapidapi.com/search/title"
     query = {
         "title": movie_title,
-        "country": "US",
+        "country": country_code.upper(),
         "show_type": "movie"
     }
     headers = {
@@ -51,18 +52,24 @@ def get_streaming_providers(movie_title):
         "X-RapidAPI-Host": "streaming-availability.p.rapidapi.com"
     }
 
-    response = requests.get(url, headers=headers, params=query)
-    if response.status_code != 200:
-        return ["Not Available"]
+    try:
+        response = requests.get(url, headers=headers, params=query)
+        if response.status_code != 200:
+            return []
 
-    data = response.json()
-    platforms = set()
+        data = response.json()
+        platforms = set()
 
-    for item in data.get("result", []):
-        for code in item.get("streamingInfo", {}).get("us", {}).keys():
-            platforms.add(PLATFORM_MAP.get(code, code.capitalize()))
+        for item in data.get("result", []):
+            streaming_info = item.get("streamingInfo", {}).get(country_code, {})
+            for code in streaming_info.keys():
+                if code in PLATFORM_LOGOS:
+                    platforms.add(code)
 
-    return sorted(platforms) if platforms else ["Not Available"]
+        return sorted(platforms)
+
+    except Exception as e:
+        return []
 
 # ✅ Load and process dataset
 df = pd.read_csv("tmdb_5000_movies.csv")
@@ -83,7 +90,7 @@ selected_movie = st.selectbox("🔍 Select a movie title", sorted(movie_list))
 if selected_movie:
     movie_data = df[df['original_title'] == selected_movie].iloc[0]
     poster_url = get_poster_url(selected_movie)
-    platforms = get_streaming_providers(selected_movie)
+    platform_codes = get_streaming_providers(selected_movie)
 
     col1, col2 = st.columns([1, 2])
 
@@ -97,4 +104,11 @@ if selected_movie:
         st.write(f"⏱️ **Runtime**: {movie_data['runtime']} minutes")
         st.write(f"⭐ **Rating**: {movie_data['vote_average']} ({movie_data['vote_count']} votes)")
         st.write(f"📝 **Overview**: {movie_data['overview']}")
-        st.write(f"📺 **Available On**: {', '.join(platforms)}")
+
+        st.markdown("📺 **Available On:**")
+        if platform_codes:
+            for code in platform_codes:
+                name, logo = PLATFORM_LOGOS[code]
+                st.markdown(f"<img src='{logo}' alt='{name}' width='100'>", unsafe_allow_html=True)
+        else:
+            st.write("Not Available")
