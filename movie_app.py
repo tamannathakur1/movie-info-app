@@ -52,4 +52,6 @@ if selected_movie:
         st.subheader(f"🎬 {movie_data['original_title']}")
         st.write(f"📅 **Release Date**: {movie_data['release_date']}")
         st.write(f"🎭 **Genres**: {', '.join(movie_data['genres']) if isinstance(movie_data['genres'], list) else movie_data['genres']}")
-        st.write(f"⏱️ **Runtime**: {movi
+        st.write(f"⏱️ **Runtime**: {movie_data['runtime']} minutes")
+        st.write(f"⭐ **Rating**: {movie_data['vote_average']} ({movie_data['vote_count']} votes)")
+        st.write(f"📝 **Overview**: {movie_data['overview']}")
