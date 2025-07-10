@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import ast
 import requests
+import re
 
 # 🔑 API KEYS
 TMDB_API_KEY = "d75ba14a78f04afedfdd0836fb06d7e6"
@@ -38,13 +39,14 @@ def get_poster_url(movie_title):
             return f"https://image.tmdb.org/t/p/w500{poster_path}"
     return "https://via.placeholder.com/300x450?text=No+Poster"
 
-# ✅ Function to get streaming platforms with logos
-def get_streaming_providers(movie_title):
-    country_code = "us"
+# ✅ Function to get streaming platforms
+def get_streaming_providers(movie_title, country_code):
+    cleaned_title = re.sub(r"[^\w\s]", "", movie_title).strip().lower()
+
     url = "https://streaming-availability.p.rapidapi.com/search/title"
     query = {
-        "title": movie_title,
-        "country": country_code.upper(),
+        "title": cleaned_title,
+        "country": country_code,
         "show_type": "movie"
     }
     headers = {
@@ -61,54 +63,18 @@ def get_streaming_providers(movie_title):
         platforms = set()
 
         for item in data.get("result", []):
-            streaming_info = item.get("streamingInfo", {}).get(country_code, {})
-            for code in streaming_info.keys():
+            info = item.get("streamingInfo", {}).get(country_code, {})
+            for code in info.keys():
                 if code in PLATFORM_LOGOS:
                     platforms.add(code)
 
         return sorted(platforms)
 
     except Exception as e:
+        st.warning(f"⚠️ API Error: {e}")
         return []
 
-# ✅ Load and process dataset
+# ✅ Load dataset
 df = pd.read_csv("tmdb_5000_movies.csv")
-
-# Clean genres column
 if isinstance(df['genres'].iloc[0], str) and df['genres'].iloc[0].startswith("["):
-    df['genres'] = df['genres'].apply(lambda x: [d['name'] for d in ast.literal_eval(x)])
-
-# ✅ Streamlit UI
-st.set_page_config(page_title="Movie Info App", layout="centered")
-st.title("🎬 Movie Info Search Engine")
-
-# Movie dropdown
-movie_list = df['original_title'].dropna().unique()
-selected_movie = st.selectbox("🔍 Select a movie title", sorted(movie_list))
-
-# Show details
-if selected_movie:
-    movie_data = df[df['original_title'] == selected_movie].iloc[0]
-    poster_url = get_poster_url(selected_movie)
-    platform_codes = get_streaming_providers(selected_movie)
-
-    col1, col2 = st.columns([1, 2])
-
-    with col1:
-        st.image(poster_url, width=250)
-
-    with col2:
-        st.subheader(f"🎬 {movie_data['original_title']}")
-        st.write(f"📅 **Release Date**: {movie_data['release_date']}")
-        st.write(f"🎭 **Genres**: {', '.join(movie_data['genres']) if isinstance(movie_data['genres'], list) else movie_data['genres']}")
-        st.write(f"⏱️ **Runtime**: {movie_data['runtime']} minutes")
-        st.write(f"⭐ **Rating**: {movie_data['vote_average']} ({movie_data['vote_count']} votes)")
-        st.write(f"📝 **Overview**: {movie_data['overview']}")
-
-        st.markdown("📺 **Available On:**")
-        if platform_codes:
-            for code in platform_codes:
-                name, logo = PLATFORM_LOGOS[code]
-                st.markdown(f"<img src='{logo}' alt='{name}' width='100'>", unsafe_allow_html=True)
-        else:
-            st.write("Not Available")
+    df['genres'] = df['genres'].apply(lambda x: [d['name'] for d in ast.literal_eva_]()
