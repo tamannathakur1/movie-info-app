@@ -71,6 +71,11 @@ def get_streaming_providers(movie_title):
     except Exception as e:
         return []
 
+# ✅ Function to get YouTube trailer link
+def get_trailer_youtube_link(movie_title):
+    query = movie_title.replace(" ", "+") + "+official+trailer"
+    return f"https://www.youtube.com/results?search_query={query}"
+
 # ✅ Load and process dataset
 df = pd.read_csv("tmdb_5000_movies.csv")
 
@@ -112,3 +117,8 @@ if selected_movie:
                 st.markdown(f"<img src='{logo}' alt='{name}' width='100'>", unsafe_allow_html=True)
         else:
             st.write("Not Available")
+
+        # 🎞️ Trailer Section
+        trailer_url = get_trailer_youtube_link(selected_movie)
+        st.markdown("🎬 **Watch Trailer**")
+        st.markdown(f"[▶️ Click here to watch on YouTube]({trailer_url})", unsafe_allow_html=True)
